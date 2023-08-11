@@ -1,0 +1,42 @@
+<?php
+
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Factory\AppFactory;
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$app = AppFactory::create();
+
+$app->addErrorMiddleware(true, true, true);
+
+$app->get('/fetch-data', function (Request $request, Response $response) {
+    // Database configuration
+    $dbConfig = [
+        'host' => 'localhost',
+        'dbname' => 'artist',
+        'username' => 'root',
+        'password' => '1234'
+    ];
+
+    // Create a new PDO instance
+    $dsn = "mysql:host={$dbConfig['host']};dbname={$dbConfig['dbname']}";
+    $pdo = new PDO($dsn, $dbConfig['username'], $dbConfig['password']);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // Query to fetch data from the 'album' table
+    $sql = "SELECT * FROM album";
+    $stmt = $pdo->query($sql);
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Close the database connection
+    $pdo = null;
+
+    // Prepare the response
+    $response->getBody()->write(json_encode($data));
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(200);
+});
+
+$app->run();
